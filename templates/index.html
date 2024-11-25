@@ -12,7 +12,11 @@
         textarea, input[type="text"], button { width: 96%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
         button { background-color: #4CAF50; color: black; font-weight: bold; cursor: pointer;  width: -webkit-fill-available;}
         button:hover { background-color: #45a049; }
-        .output { margin-top: 15px; background-color: #e6e6e6; padding: 10px; border-radius: 4px; font-family: monospace; }
+        .output { margin-top: 15px; background-color: #e6e6e6; padding: 10px; border-radius: 4px; font-family: monospace; width:100%; }
+        .output-container { display: flex; justify-content: start; align-items: center; }
+        .output-id { margin-left: 10px; font-weight: bold; color: #333; word-wrap: break-word; max-width: 200px; }
+        .output_decode { margin-top: 15px; background-color: #e6e6e6; padding: 10px; border-radius: 4px; font-family: monospace; }
+
     </style>
 </head>
 <body>
@@ -25,13 +29,17 @@
         <input type="text" id="privateText" placeholder="Enter the secret text to hide">
 
         <button onclick="encodeMessage()">Encode Message</button>
-        <div class="output" id="encodedOutput"></div>
+        <div class="output-container">
+            <div class="output" id="encodedOutput"></div>
+            <div class="output-id" id="sha256Id"></div>
+            <div class="output-id" id="latest_hash"></div> <!--problem-->
+        </div>
 
         <label for="stegoText">Encoded Text (for decoding)</label>
         <textarea id="stegoText" rows="3" placeholder="Enter text with hidden message to decode"></textarea>
 
         <button onclick="decodeMessage()">Decode Message</button>
-        <div class="output" id="decodedOutput"></div>
+        <div class="output_decode" id="decodedOutput"></div>
     </div>
 
     <script>
@@ -47,6 +55,9 @@
             .then(response => response.json())
             .then(data => {
                 document.getElementById('encodedOutput').innerText = "Encoded Text:\n" + data.stego_text;
+                document.getElementById('sha256Id').innerText = "SHA-256 ID: " + data.unique_id;
+                document.getElementById('latest_hash').innerText = `KEEP HASH: ${block.hash}`; //problem
+
             });
         }
 
@@ -64,5 +75,26 @@
             });
         }
     </script>
+
+<button onclick="viewBlockchain()" style="width: min-content;">View Blockchain</button>
+<div id="blockchainOutput"></div>
+
+<script>
+    function viewBlockchain() {
+        fetch('/blockchain')
+        .then(response => response.json())
+        .then(data => {
+            let blockchainHtml = '<h2>Blockchain</h2>';
+            data.forEach(block => {
+                blockchainHtml += `
+                    <p>Block ${block.index} (Timestamp: ${block.timestamp})<br>
+                    Previous Hash: ${block.previous_hash}<br>
+                    Hash: ${block.hash}</p>`;
+            });
+            document.getElementById('blockchainOutput').innerHTML = blockchainHtml;
+        });
+    }
+</script>
+
 </body>
 </html>
