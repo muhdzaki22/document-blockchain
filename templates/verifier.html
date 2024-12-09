@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify PDF Document</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;  background-color: beige;
+        }
+        .container { width: 100%; max-width: 600px; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); background-color: #f9f9f9; border: 2px solid black; }
+        h1 { font-size: 24px; text-align: center; color: #333; }
+        input[type="file"], button { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #4CAF50; color: white; font-weight: bold; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        .output { margin-top: 15px; padding: 10px; border-radius: 4px; text-align: center;  }
+        .verified { color: white; font-size: 18px; background-color: #3cbc44;  padding: 10px 15px; border-radius: 8px; }
+        .not-verified { color: white; font-size: 18px; background-color: #b83c46;  padding: 10px 15px; border-radius: 8px; }
+        .hash-output { margin-top: 10px; font-size: 16px; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Verify PDF Documents</h1>
+        <input type="file" id="pdfFiles" accept="application/pdf" multiple>
+        <button onclick="verifyPdfs()">Verify Documents</button>
+        <div class="output" id="verificationOutput"></div>
+    </div>
+
+    <script>
+        function verifyPdfs() {
+            const pdfFiles = document.getElementById('pdfFiles').files;
+            if (pdfFiles.length === 0) {
+                alert('Please select at least one PDF file.');
+                return;
+            }
+
+            const formData = new FormData();
+            for (const file of pdfFiles) {
+                formData.append('pdf_files', file);
+            }
+
+            fetch('/verify', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const output = document.getElementById('verificationOutput');
+                output.innerHTML = ""; // Clear previous output
+
+                data.forEach(result => {
+                    const statusClass = result.status === 'verified' ? 'verified' : 'not-verified';
+                    output.innerHTML += `
+                        <div class="${statusClass}">
+                            <strong>${result.filename}:</strong> ${result.status.toUpperCase()} <br>
+                            Hash: <code>${result.pdf_hash}</code>
+                        </div>
+                    `;
+                });
+            });
+        }
+    </script>
+</body>
+</html>
+

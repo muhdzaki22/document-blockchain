@@ -3,98 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text Steganography</title>
+    <title>PDF Blockchain</title>
     <style>
-        body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .container { width: 100%; max-width: 600px; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); background-color:#12080863; }
+        body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: beige; }
+        .container { width: 100%; max-width: 600px; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); background-color: #f9f9f9; border: 2px solid black; }
         h1 { font-size: 24px; text-align: center; color: #333; }
-        label { font-weight: bold; margin-top: 10px; display: block; }
-        textarea, input[type="text"], button { width: 96%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
-        button { background-color: #4CAF50; color: black; font-weight: bold; cursor: pointer;  width: -webkit-fill-available;}
+        input[type="file"], button { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #4CAF50; color: white; font-weight: bold; cursor: pointer; }
         button:hover { background-color: #45a049; }
-        .output { margin-top: 15px; background-color: #e6e6e6; padding: 10px; border-radius: 4px; font-family: monospace; width:100%; }
-        .output-container { display: flex; justify-content: start; align-items: center; }
-        .output-id { margin-left: 10px; font-weight: bold; color: #333; word-wrap: break-word; max-width: 200px; }
-        .output_decode { margin-top: 15px; background-color: #e6e6e6; padding: 10px; border-radius: 4px; font-family: monospace; }
-
+        .output { margin-top: 15px; background-color: #e6e6e6; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Text Steganography</h1>
-        <label for="publicText">Public Text</label>
-        <textarea id="publicText" rows="3" placeholder="Enter the public (visible) text"></textarea>
-
-        <label for="privateText">Secret Text (to hide)</label>
-        <input type="text" id="privateText" placeholder="Enter the secret text to hide">
-
-        <button onclick="encodeMessage()">Encode Message</button>
-        <div class="output-container">
-            <div class="output" id="encodedOutput"></div>
-            <div class="output-id" id="sha256Id"></div>
-            <div class="output-id" id="latest_hash"></div> <!--problem-->
-        </div>
-
-        <label for="stegoText">Encoded Text (for decoding)</label>
-        <textarea id="stegoText" rows="3" placeholder="Enter text with hidden message to decode"></textarea>
-
-        <button onclick="decodeMessage()">Decode Message</button>
-        <div class="output_decode" id="decodedOutput"></div>
+        <h1>Upload PDFs to Blockchain</h1>
+        <input type="file" id="pdfFiles" accept="application/pdf" multiple>
+        <button onclick="uploadPdf()">Upload and Hash PDFs</button>
+        <div class="output" id="pdfHashOutput"></div>
     </div>
 
     <script>
-        function encodeMessage() {
-            const publicText = document.getElementById('publicText').value;
-            const privateText = document.getElementById('privateText').value;
+        function uploadPdf() {
+            const pdfFiles = document.getElementById('pdfFiles').files;
+            if (pdfFiles.length === 0) {
+                alert('Please select one or more PDF files.');
+                return;
+            }
 
-            fetch('/encode', {
+            const formData = new FormData();
+            for (const file of pdfFiles) {
+                formData.append('pdf_files', file);
+            }
+
+            fetch('/upload', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ public_text: publicText, private_text: privateText })
+                body: formData
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById('encodedOutput').innerText = "Encoded Text:\n" + data.stego_text;
-                document.getElementById('sha256Id').innerText = "SHA-256 ID: " + data.unique_id;
-                document.getElementById('latest_hash').innerText = `KEEP HASH: ${block.hash}`; //problem
-
-            });
-        }
-
-        function decodeMessage() {
-            const stegoText = document.getElementById('stegoText').value;
-
-            fetch('/decode', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ stego_text: stegoText })
+                if (data.error) {
+                    document.getElementById('pdfHashOutput').innerText = "Error: " + data.error;
+                } else {
+                    let output = "Upload Results:\n\n";
+                    data.forEach(result => {
+                        output += `File Name: ${result.file_name}\nPDF Hash: ${result.pdf_hash}\nBlock Index: ${result.block_index}\n\n`;
+                    });
+                    document.getElementById('pdfHashOutput').innerText = output;
+                }
             })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('decodedOutput').innerText = "Decoded Message:\n" + data.decoded_message;
+            .catch(error => {
+                document.getElementById('pdfHashOutput').innerText = "An error occurred: " + error;
             });
         }
     </script>
-
-<button onclick="viewBlockchain()" style="width: min-content;">View Blockchain</button>
-<div id="blockchainOutput"></div>
-
-<script>
-    function viewBlockchain() {
-        fetch('/blockchain')
-        .then(response => response.json())
-        .then(data => {
-            let blockchainHtml = '<h2>Blockchain</h2>';
-            data.forEach(block => {
-                blockchainHtml += `
-                    <p>Block ${block.index} (Timestamp: ${block.timestamp})<br>
-                    Previous Hash: ${block.previous_hash}<br>
-                    Hash: ${block.hash}</p>`;
-            });
-            document.getElementById('blockchainOutput').innerHTML = blockchainHtml;
-        });
-    }
-</script>
-
 </body>
 </html>
