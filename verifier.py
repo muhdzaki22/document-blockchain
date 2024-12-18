@@ -30,7 +30,7 @@ def verify_pdfs():
         pdf_data = pdf_file.read()
         pdf_hash = hashlib.sha256(pdf_data).hexdigest()
 
-        status = "not_verified"
+        status = "Tampered"
         for block in blockchain:
             if block.get('unique_id') == pdf_hash:
                 status = "verified"
